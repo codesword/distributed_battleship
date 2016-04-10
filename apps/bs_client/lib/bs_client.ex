@@ -4,13 +4,14 @@ defmodule BSClient do
   alias BSClient.Game
   alias BSClient.Handler
   alias BSClient.ServerProcotol
+  alias BSClient.Game.State
 
   def start(_type, _args) do
     get_env
       |> connect
       |> start_handler
-      |> join_game_world
-      |> Game.start
+    join_game_world
+    Game.start
   end
 
   defp get_env do
@@ -37,11 +38,12 @@ defmodule BSClient do
   defp start_handler({server, nick}) do
     Handler.start_link(server)
     IO.puts "Connected"
-    {server, nick}
+    State.start
+    State.put(:server_nick, {server, nick})
   end
 
-  defp join_game_world({server, nick}) do
-    case ServerProcotol.connect({server, nick}) do
+  defp join_game_world do
+    case ServerProcotol.connect do
       {:ok, users} ->
         IO.puts "* Joined the game world *"
         IO.puts "* Players in the world: #{users} *"
@@ -50,6 +52,5 @@ defmodule BSClient do
         IO.puts "Could not join game world, reason: #{reason}"
         System.halt(0)
     end
-    {server, nick}
   end
 end

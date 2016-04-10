@@ -1,33 +1,38 @@
 defmodule BSClient.ServerProcotol do
-  def connect({server, nick}) do
-    server |> call({:connect, nick})
+  alias BSClient.Game.State
+  def connect do
+    call {:connect}
   end
 
-  def disconnect({server, nick}) do
-    server |> call({:disconnect, nick})
+  def disconnect do
+    call {:disconnect}
   end
 
-  def list_users({server, nick}) do
-    server |> cast({:list_users, nick})
+  def list_users do
+    cast {:list_users}
   end
 
-  def private_message({server, nick}, to, message) do
-    server |> cast({:private_message, nick, to, message})
+  def private_message(to, message) do
+    cast {:private_message, to, message}
   end
 
-  def broadcast({server, nick}, message) do
-    server |> call({:broadcast, nick, message})
+  def broadcast(message) do
+    cast {:broadcast, message}
   end
 
-  def request_game({server, nick}, receiver_nick) do
-    server |> call({:request_game, nick, receiver_nick})
+  def request_game(receiver_nick) do
+    call {:request_game, receiver_nick}
   end
 
-  defp call(server, args) do
+  defp call(args) do
+    { server, nick } = State.get(:server_nick)
+    args = Tuple.insert_at(args, 1, nick)
     GenServer.call({:server, server}, args, :infinity)
   end
 
-  defp cast(server, args) do
+  defp cast(args) do
+    { server, nick } = State.get(:server_nick)
+    args = Tuple.insert_at(args, 1, nick)
     GenServer.cast({:server, server}, args)
   end
 end

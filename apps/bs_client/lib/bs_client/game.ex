@@ -3,16 +3,17 @@ defmodule BSClient.Game do
   alias BSClient.Game.Level
   alias BSClient.Game.Mode
   alias BSClient.Game.Engine
+  alias BSClient.Game.Message
 
-  def start({server, nick}) do
+  def start do
     IO.write "#{Node.self}> "
     line = IO.read(:line)
       |> String.rstrip
-    handle_command line, {server, nick}
-    start {server, nick}
+    handle_command line
+    start
   end
 
-  def handle_command("/help", _args) do
+  def handle_command("/help") do
     IO.puts """
     Available commands:
       /leave                    # Leave the game world. You can still play with computer
@@ -27,60 +28,56 @@ defmodule BSClient.Game do
     """
   end
 
-  def handle_command("/leave", args) do
-    ServerProcotol.disconnect(args)
+  def handle_command("/leave") do
+    ServerProcotol.disconnect
     IO.puts "You have exited the game world, you can rejoin with /join or quit with /quit"
   end
 
-  def handle_command("/quit", args) do
-    ServerProcotol.disconnect(args)
+  def handle_command("/quit") do
+    ServerProcotol.disconnect
     IO.puts "Goodbye!!!!"
     System.halt(0)
   end
 
-  def handle_command("/join", args) do
-    ServerProcotol.connect(args)
+  def handle_command("/join") do
+    ServerProcotol.connect
     IO.puts "Joined the game world"
   end
 
-  def handle_command("/players available", args) do
-    ServerProcotol.list_users(args)
+  def handle_command("/players available") do
+    ServerProcotol.list_users
   end
 
-  def handle_command("/players", args) do
-    ServerProcotol.list_users(args)
+  def handle_command("/players") do
+    ServerProcotol.list_users
   end
 
-  def handle_command("/play", args) do
+  def handle_command("/play") do
     level = Level.setup
-    mode =  Mode.setup(args)
-    IO.inspect mode
-    Engine.setup(level)
+    game_mode = Mode.setup
+    level ++ game_mode
+    |> Engine.setup
     |> Engine.play(:human, :start)
 
     IO.puts "\n* Type /help for options *"
   end
 
-  def handle_command("/instructions", args) do
-    ServerProcotol.list_users(args)
+  def handle_command("/instructions") do
+    Message.instruction
   end
 
-  def handle_command("/broadcast", args) do
-    ServerProcotol.list_users(args)
-  end
+  def handle_command(""), do: :ok
 
-  def handle_command("", _args), do: :ok
+  def handle_command(nil), do: :ok
 
-  def handle_command(nil, _args), do: :ok
-
-  def handle_command(message, args) do
+  def handle_command(message) do
     cond do
       String.contains?(message, "/pm") ->
         {to, message} = parse_private_recipient(message)
-        ServerProcotol.private_message(args, to, message)
+        ServerProcotol.private_message(to, message)
       String.contains?(message, "/broadcast") ->
         message = String.slice(11..-1)
-        ServerProcotol.broadcast(args, message)
+        ServerProcotol.broadcast message
       true ->
         IO.puts "Command not recognised"
     end
