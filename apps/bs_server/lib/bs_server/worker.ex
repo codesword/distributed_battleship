@@ -37,7 +37,16 @@ defmodule BSServer.Worker do
     end
   end
 
-  def handle_cast({ :say, nick, message }, users) do
+  def handle_call({:request_game, nick, receiver_nick }, {from, _}, users) do
+    case HashDict.get(users, receiver_nick) do
+      nil -> { :reply, :player_not_online, users }
+      receiver_node ->
+        response = request_permission(receiver_node, nick)
+        { :reply, response, users }
+    end
+  end
+
+  def handle_cast({ :broadcast, nick, message }, users) do
     ears = HashDict.delete(users, nick)
     Logger.debug("#{nick} said #{message}")
     broadcast(ears, nick, message)
@@ -65,10 +74,6 @@ defmodule BSServer.Worker do
     user_list
   end
 
-  defp say(nick, message) do
-    GenServer.cast(:server, { :say, nick, "* #{nick} #{message} *" })
-  end
-
   defp broadcast(users, nick, message) do
     Enum.map(users, fn {_, node} ->
       Task.async(fn ->
@@ -80,5 +85,9 @@ defmodule BSServer.Worker do
 
   defp send_message_to_client(client_node, nick, message) do
     GenServer.cast({ :client, client_node }, { :message, nick, message })
+  end
+
+  defp request_permission(client_node, nick) do
+    GenServer.call({ :client, client_node }, { :request_game, nick }, :infinity)
   end
 end

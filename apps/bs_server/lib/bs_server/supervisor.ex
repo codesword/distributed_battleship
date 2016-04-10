@@ -9,7 +9,6 @@ defmodule BSServer.Supervisor do
     children = [
       worker(BSServer.Worker, [:server])
     ]
-
     supervise(children, strategy: :one_for_one)
   end
 end
