@@ -20,6 +20,7 @@ defmodule BSClient.Game do
       /instructions             # View the instructions on how to play
       /broadcast                # broadcast message to all players online
       /pm <to nick> <message>   # Send a private message to any player
+      /broadcast <message>      # Broadcast message to all players online.
     """
   end
 
@@ -49,7 +50,7 @@ defmodule BSClient.Game do
 
   def handle_command("/play", args) do
     Level.setup
-    |> Mode.setup
+    |> Mode.setup(args)
     |> Engine.setup
     |> Engine.play(setup, :human, :start)
 
@@ -69,11 +70,15 @@ defmodule BSClient.Game do
   def handle_command(nil, _args), do: :ok
 
   def handle_command(message, args) do
-    if String.contains?(message, "/pm") do
-      {to, message} = parse_private_recipient(message)
-      ServerProcotol.private_message(args, to, message)
-    else
-      IO.puts "Command not recognised"
+    cond do
+      String.contains?(message, "/pm") ->
+        {to, message} = parse_private_recipient(message)
+        ServerProcotol.private_message(args, to, message)
+      String.contains?(message, "/broadcast") ->
+        message = String.slice(11..-1)
+        ServerProcotol.broadcast(args, message)
+      true ->
+        IO.puts "Command not recognised"
     end
   end
 
