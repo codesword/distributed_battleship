@@ -15,4 +15,22 @@ defmodule BSClient.Handler do
     IO.write "#{Node.self}> "
     {:noreply, server}
   end
+
+  def handle_call({ :request_game, nick }, {from, _}, server) do
+    game_requested(server, nick)
+  end
+
+  defp game_requested(server, nick) do
+    response = IO.gets("#{nick} wants to play a game with you, (a)ccept or (r)eject: ")
+                |> String.rstrip(?\n)
+    case response do
+      "a" -> {:reply, :accepted,  server}
+      "accept" -> {:reply, :accepted ,  server}
+      "r" -> {:reply, :declined ,  server}
+      "rejected" -> {:reply, :decline,  server}
+       _ ->
+         IO.puts "invalid entry: type a, accept, r or reject to continue."
+         game_requested(server, nick)
+    end
+  end
 end

@@ -1,5 +1,8 @@
 defmodule BSClient.Game do
   alias BSClient.ServerProcotol
+  alias BSClient.Game.Level
+  alias BSClient.Game.Mode
+  alias BSClient.Game.Engine
 
   def start({server, nick}) do
     IO.write "#{Node.self}> "
@@ -49,10 +52,11 @@ defmodule BSClient.Game do
   end
 
   def handle_command("/play", args) do
-    Level.setup
-    |> Mode.setup(args)
-    |> Engine.setup
-    |> Engine.play(setup, :human, :start)
+    level = Level.setup
+    mode =  Mode.setup(args)
+    IO.inspect mode
+    Engine.setup(level)
+    |> Engine.play(:human, :start)
 
     IO.puts "\n* Type /help for options *"
   end
