@@ -20,10 +20,10 @@ defmodule BSClient.ServerProcotol do
   end
 
   defp call(server, args) do
-    GenServer.call({:message_server, server}, args)
+    GenServer.call({:server, server}, args)
   end
 
   defp cast(server, args) do
-    GenServer.cast({:message_server, server}, args)
+    GenServer.cast({:server, server}, args)
   end
 end

@@ -1,16 +1,16 @@
 defmodule BSClient do
   use Application
 
-  alias BSClient.ServerProcotol
+  alias BSClient.Game
   alias BSClient.Handler
-  alias BSClient.Engine
+  alias BSClient.ServerProcotol
 
   def start(_type, _args) do
     get_env
       |> connect
       |> start_handler
       |> join_game_world
-      |> Engine.input_loop
+      |> Game.start
   end
 
   defp get_env do
@@ -24,7 +24,7 @@ defmodule BSClient do
 
   defp connect({server, nick}) do
     IO.puts "Connecting to #{server} from #{Node.self} ..."
-    Node.set_cookie(Node.self, :"battleship")
+    Node.set_cookie(Node.self, :"distributed-battleship")
     case Node.connect(server) do
       true -> :ok
       reason ->
@@ -35,7 +35,7 @@ defmodule BSClient do
   end
 
   defp start_handler({server, nick}) do
-    BSClient.Handler.start_link(server)
+    Handler.start_link(server)
     IO.puts "Connected"
     {server, nick}
   end
@@ -44,7 +44,7 @@ defmodule BSClient do
     case ServerProcotol.connect({server, nick}) do
       {:ok, users} ->
         IO.puts "* Joined the game world *"
-        IO.puts "* Users in the room: #{users} *"
+        IO.puts "* Players in the world: #{users} *"
         IO.puts "* Type /help for options *"
       reason ->
         IO.puts "Could not join game world, reason: #{reason}"

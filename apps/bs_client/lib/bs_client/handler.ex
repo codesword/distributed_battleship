@@ -2,7 +2,7 @@ defmodule BSClient.Handler do
   use GenServer
 
   def start_link(server) do
-    Genserver.start_link({ :local, :message_handler }, __MODULE__, server, [])
+    GenServer.start_link(__MODULE__, server, name: :client)
   end
 
   def init(server) do
