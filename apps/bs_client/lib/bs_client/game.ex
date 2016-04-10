@@ -48,7 +48,12 @@ defmodule BSClient.Game do
   end
 
   def handle_command("/play", args) do
-    ServerProcotol.list_users(args)
+    Level.setup
+    |> Mode.setup
+    |> Engine.setup
+    |> Engine.play(setup, :human, :start)
+
+    IO.puts "\n* Type /help for options *"
   end
 
   def handle_command("/instructions", args) do
