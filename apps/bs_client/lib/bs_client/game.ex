@@ -25,6 +25,7 @@ defmodule BSClient.Game do
       /broadcast                # broadcast message to all players online
       /pm <to nick> <message>   # Send a private message to any player
       /broadcast <message>      # Broadcast message to all players online.
+      /quit                     # Quit the game
     """
   end
 
