@@ -41,8 +41,26 @@ defmodule BSServer.Worker do
     case HashDict.get(users, receiver_nick) do
       nil -> { :reply, :player_not_online, users }
       receiver_node ->
-        response = request_permission(receiver_node, nick)
+        response = call(receiver_node, { :request_game, nick })
         { :reply, response, users }
+    end
+  end
+
+  def handle_call({:layout_fleet, nick, receiver_nick, args }, {from, _}, users) do
+    case HashDict.get(users, receiver_nick) do
+      nil -> { :reply, :player_not_online, users }
+      receiver_node ->
+        call receiver_node, {:layout_fleet, nick, args}
+        { :reply, :ok, users }
+    end
+  end
+
+  def handle_call({:shoot, nick, receiver_nick, coord }, {from, _}, users) do
+    case HashDict.get(users, receiver_nick) do
+      nil -> { :reply, :player_not_online, users }
+      receiver_node ->
+        coord = call receiver_node, {:shoot, nick, coord}
+        { :reply, coord, users }
     end
   end
 
@@ -57,7 +75,7 @@ defmodule BSServer.Worker do
     case HashDict.get(users, receiver_nick) do
       nil -> :ok
       receiver_node ->
-        send_message_to_client(receiver_node, nick, message)
+        cast receiver_node, { :message, nick, message }
     end
     {:noreply, users}
   end
@@ -77,17 +95,17 @@ defmodule BSServer.Worker do
   defp broadcast(users, nick, message) do
     Enum.map(users, fn {_, node} ->
       Task.async(fn ->
-        send_message_to_client(node, nick, message)
+        cast(node, { :message, nick, message })
       end)
     end)
     |> Enum.map(&Task.await/1)
   end
 
-  defp send_message_to_client(client_node, nick, message) do
-    GenServer.cast({ :client, client_node }, { :message, nick, message })
+  defp call(node, args) do
+    GenServer.call({ :client, node }, args, :infinity)
   end
 
-  defp request_permission(client_node, nick) do
-    GenServer.call({ :client, client_node }, { :request_game, nick }, :infinity)
+  defp cast(node, args) do
+    GenServer.cast({ :client, node }, args)
   end
 end

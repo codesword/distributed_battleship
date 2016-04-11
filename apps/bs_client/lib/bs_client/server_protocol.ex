@@ -24,6 +24,15 @@ defmodule BSClient.ServerProcotol do
     call {:request_game, receiver_nick}
   end
 
+  def shoot(coord, receiver_nick) do
+    call {:shoot, receiver_nick, coord}
+  end
+
+  def layout_fleet(receiver_nick, args) do
+    IO.puts "\n #{receiver_nick} is laying out his ship. Please wait!!!\n"
+    call {:layout_fleet, receiver_nick, args}
+  end
+
   defp call(args) do
     { server, nick } = State.get(:server_nick)
     args = Tuple.insert_at(args, 1, nick)
