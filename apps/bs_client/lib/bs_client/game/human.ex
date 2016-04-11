@@ -36,7 +36,7 @@ defmodule BSClient.Game.Human do
     end
   end
 
-  defp cell_from_coordinate(coordinate) do
+  def cell_from_coordinate(coordinate) do
     String.split(coordinate, "", trim: true)
   end
 

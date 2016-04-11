@@ -57,7 +57,7 @@ defmodule BSClient.Game do
     game_mode = Mode.setup
     level ++ game_mode
     |> Engine.setup
-    |> Engine.play(:human, :start)
+    |> Engine.play(:human, game_mode[:name])
 
     IO.puts "\n* Type /help for options *"
   end
@@ -76,8 +76,9 @@ defmodule BSClient.Game do
         {to, message} = parse_private_recipient(message)
         ServerProcotol.private_message(to, message)
       String.contains?(message, "/broadcast") ->
-        message = String.slice(11..-1)
-        ServerProcotol.broadcast message
+        message
+        |> String.slice(11..-1)
+        |> ServerProcotol.broadcast
       true ->
         IO.puts "Command not recognised"
     end

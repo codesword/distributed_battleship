@@ -4,20 +4,23 @@ defmodule BSClient.Game.Engine do
   alias BSClient.Game.Human
   alias BSClient.Game.Config
   alias BSClient.Game.State
+  alias BSClient.ServerProcotol
 
-  def setup([board_size: size, ship_count: count]) do
+  def setup([board_size: size, ship_count: count, opponent: :computer]) do
     computer_fleet = Computer.generate_fleet(size, count)
     human_fleet = Human.generate_fleet(size, count)
     { computer_fleet, human_fleet }
   end
 
+  def setup([board_size: size, ship_count: count, opponent: :human, name: name]) do
+    ServerProcotol.layout_fleet(name, {size, count})
+    State.start_time
+    Human.generate_fleet(size, count)
+  end
+
   def play({ _computer_fleet, _human_fleet }, :computer, :game_over), do: :game_over
   def play({ _computer_fleet, _human_fleet }, :human, :game_over) do
-    total_time = State.total_time
-    shots = State.get(:shots)
-    IO.puts "Sorry!!! You lost the game"
-    IO.puts "It took computer #{shots + 1} shots to sink all your ships"
-    IO.puts "The game lasted for #{total_time}"
+    IO.puts game_over
   end
 
   def play({ computer_fleet, human_fleet }, :human,  _status) do
@@ -38,6 +41,43 @@ defmodule BSClient.Game.Engine do
     play({ computer_fleet, human_fleet }, :human, status)
   end
 
+  def play(human_fleet, :human,  opponent_nick) do
+    IO.puts "Your turn! Here's what you know:"
+    Fleet.display(human_fleet)
+    opponent_coord = ServerProcotol.shoot(select_coord, opponent_nick)
+    { status, human_fleet, ship_size } = shoot(:human, human_fleet)
+    State.inc_shots
+    display_status(status, :human, ship_size)
+    if status == :game_over do
+      send_message(status, opponent_nick)
+    else
+      play(human_fleet, :human,  opponent_nick)
+    end
+  end
+
+  def play_callback(coord, nick) do
+    fleet = State.get(:my_fleet)
+    { status, fleet, ship_size } = shoot(:human, fleet, coord)
+    IO.puts "Your turn! Here's what you know:"
+    Fleet.display(fleet)
+    State.put(:my_fleet, fleet)
+    State.inc_shots
+    display_status(status, :human, ship_size)
+    send_message(status, nick)
+    {:reply, select_coord, []}
+  end
+
+  def select_coord do
+    IO.gets("Enter a coordinate to shoot at:")
+    |> String.rstrip(?\n)
+  end
+
+  def send_message(:game_over, nick) do
+    ServerProcotol.private_message(nick, game_over("your opponent"))
+  end
+
+  def send_message(_, _nick), do: nil
+
   def shoot(:computer, fleet, :taken), do: shoot(:computer, fleet)
 
   def shoot(:human, fleet, :taken) do
@@ -56,6 +96,12 @@ defmodule BSClient.Game.Engine do
   def shoot(:human, fleet) do
     IO.gets("Enter a coordinate to shoot at:")
     |> String.rstrip(?\n)
+    |> Human.cell_from_coordinate
+    |> update_cell_on_play(fleet, :human)
+  end
+
+  def shoot(:human, fleet, coord) do
+    coord
     |> Human.cell_from_coordinate
     |> update_cell_on_play(fleet, :human)
   end
@@ -98,7 +144,25 @@ defmodule BSClient.Game.Engine do
     IO.puts "The game lasted for #{total_time}"
   end
 
+  def display_status(:game_over, :human, _) do
+    total_time = State.total_time
+    shots = State.get(:shots)
+    IO.puts "Congratulations!!! You won the game"
+    IO.puts "It took you #{shots} shots to sink the opponent’s ships"
+    IO.puts "The game lasted for #{total_time}"
+  end
+
   def display_status(:ship_sunk, :human, ship_size) do
     IO.puts "You have sunk an enemy ship. The size of the ship is: #{ship_size}"
+  end
+
+  def game_over(nick \\ "computer") do
+    total_time = State.total_time
+    shots = State.get(:shots)
+    """
+    Sorry!!! You lost the game"
+    It took #{nick} #{shots + 1} shots to sink all your ships
+    The game lasted for #{total_time}
+    """
   end
 end
