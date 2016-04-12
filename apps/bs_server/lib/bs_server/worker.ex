@@ -46,29 +46,41 @@ defmodule BSServer.Worker do
     end
   end
 
-  def handle_call({:layout_fleet, nick, receiver_nick, args }, {from, _}, users) do
+  def handle_call({:valid_shoot, nick, receiver_nick, coord }, {from, _}, users) do
     case HashDict.get(users, receiver_nick) do
       nil -> { :reply, :player_not_online, users }
       receiver_node ->
-        call receiver_node, {:layout_fleet, nick, args}
-        { :reply, :ok, users }
+        response = call(receiver_node, { :valid_shoot, coord })
+        { :reply, response, users }
     end
   end
 
-  def handle_call({:shoot, nick, receiver_nick, coord }, {from, _}, users) do
+
+  def handle_cast({:layout_fleet, nick, receiver_nick, args }, users) do
     case HashDict.get(users, receiver_nick) do
-      nil -> { :reply, :player_not_online, users }
+      nil -> :ok
       receiver_node ->
-        coord = call receiver_node, {:shoot, nick, coord}
-        { :reply, coord, users }
+        cast receiver_node, {:layout_fleet, nick, args}
     end
+    { :noreply, users }
   end
 
-  def handle_cast({ :broadcast, nick, message }, users) do
-    ears = HashDict.delete(users, nick)
-    Logger.debug("#{nick} said #{message}")
-    broadcast(ears, nick, message)
-    {:noreply, users}
+  def handle_cast({:display_status, nick, receiver_nick, status, ship_size }, users) do
+    case HashDict.get(users, receiver_nick) do
+      nil -> :ok
+      receiver_node ->
+        cast receiver_node, {:display_status, nick, status, ship_size}
+    end
+    { :noreply, users }
+  end
+
+  def handle_cast({:shoot, nick, receiver_nick, coord }, users) do
+    case HashDict.get(users, receiver_nick) do
+      nil -> :ok
+      receiver_node ->
+        coord = cast receiver_node, {:shoot, nick, coord}
+    end
+    { :noreply, users }
   end
 
   def handle_cast({ :private_message, nick, receiver_nick, message }, users) do
@@ -77,6 +89,13 @@ defmodule BSServer.Worker do
       receiver_node ->
         cast receiver_node, { :message, nick, message }
     end
+    {:noreply, users}
+  end
+
+  def handle_cast({ :broadcast, nick, message }, users) do
+    ears = HashDict.delete(users, nick)
+    Logger.debug("#{nick} said #{message}")
+    broadcast(ears, nick, message)
     {:noreply, users}
   end
 

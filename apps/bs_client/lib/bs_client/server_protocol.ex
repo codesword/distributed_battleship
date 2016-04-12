@@ -20,17 +20,25 @@ defmodule BSClient.ServerProcotol do
     cast {:broadcast, message}
   end
 
+  def valid_shoot?(coord, receiver_nick) do
+    call { :valid_shoot, receiver_nick, coord }
+  end
+
   def request_game(receiver_nick) do
     call {:request_game, receiver_nick}
   end
 
   def shoot(coord, receiver_nick) do
-    call {:shoot, receiver_nick, coord}
+    cast {:shoot, receiver_nick, coord}
+  end
+
+  def display_status(status, receiver_nick, ship_size) do
+    cast {:display_status, receiver_nick, status, ship_size}
   end
 
   def layout_fleet(receiver_nick, args) do
-    IO.puts "\n #{receiver_nick} is laying out his ship. Please wait!!!\n"
-    call {:layout_fleet, receiver_nick, args}
+    # IO.puts "\n #{receiver_nick} is laying out his ship. Please wait!!!\n"
+    cast {:layout_fleet, receiver_nick, args}
   end
 
   defp call(args) do

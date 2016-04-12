@@ -15,7 +15,8 @@ defmodule BSClient.Game.Engine do
   def setup([board_size: size, ship_count: count, opponent: :human, name: name]) do
     ServerProcotol.layout_fleet(name, {size, count})
     State.start_time
-    Human.generate_fleet(size, count)
+    State.put(:my_fleet, Human.generate_fleet(size, count))
+    :ok
   end
 
   def play({ _computer_fleet, _human_fleet }, :computer, :game_over), do: :game_over
@@ -41,35 +42,51 @@ defmodule BSClient.Game.Engine do
     play({ computer_fleet, human_fleet }, :human, status)
   end
 
-  def play(human_fleet, :human,  opponent_nick) do
-    IO.puts "Your turn! Here's what you know:"
-    Fleet.display(human_fleet)
-    opponent_coord = ServerProcotol.shoot(select_coord, opponent_nick)
-    { status, human_fleet, ship_size } = shoot(:human, human_fleet)
-    State.inc_shots
-    display_status(status, :human, ship_size)
-    if status == :game_over do
-      send_message(status, opponent_nick)
-    else
-      play(human_fleet, :human,  opponent_nick)
-    end
+  # def play(:human, coord,  opponent_nick) do
+  #   fleet = State.get(:my_fleet)
+  #   IO.puts "Your turn! Here's what you know:"
+  #   Fleet.display(human_fleet)
+  #   { status, human_fleet, ship_size } = shoot(:human, coord, human_fleet)
+  #   State.inc_shots
+  #   display_status(status, :human, ship_size)
+  #   ServerProcotol.shoot(select_coord, opponent_nick)
+  #   if status == :game_over do
+  #     send_message(status, opponent_nick)
+  #   else
+  #     IO.puts "Waiting for opponent to shoot"
+  #   end
+  # end
+
+  def play(_, :human, nick) do
+    select_coord(nick) |> ServerProcotol.shoot(nick)
   end
 
-  def play_callback(coord, nick) do
+  def play(:human, coord, nick) do
     fleet = State.get(:my_fleet)
     { status, fleet, ship_size } = shoot(:human, fleet, coord)
     IO.puts "Your turn! Here's what you know:"
     Fleet.display(fleet)
     State.put(:my_fleet, fleet)
     State.inc_shots
-    display_status(status, :human, ship_size)
-    send_message(status, nick)
-    {:reply, select_coord, []}
+    ServerProcotol.display_status(status, nick, ship_size)
+    if status == :game_over do
+      IO.puts game_over(nick)
+    else
+      select_coord(nick)
+        |> ServerProcotol.shoot(nick)
+    end
+    {:noreply, []}
   end
 
-  def select_coord do
-    IO.gets("Enter a coordinate to shoot at:")
-    |> String.rstrip(?\n)
+  def select_coord(nick) do
+    coord = IO.gets("Enter a coordinate to shoot at:")
+      |> String.rstrip(?\n)
+    case ServerProcotol.valid_shoot?(coord, nick) do
+      false -> coord
+      true ->
+        IO.puts "This coordinate has already been shot:"
+        select_coord(nick)
+    end
   end
 
   def send_message(:game_over, nick) do
@@ -104,6 +121,12 @@ defmodule BSClient.Game.Engine do
     coord
     |> Human.cell_from_coordinate
     |> update_cell_on_play(fleet, :human)
+  end
+
+  def valid_shoot?(coord) do
+    [row, column] = coord |> Human.cell_from_coordinate
+    fleet = State.get(:my_fleet)
+    fleet[row][column][:status] == "O" || fleet[row][column][:status] == "H"
   end
 
   def update_cell_on_play([row, column], fleet, player) do

@@ -20,13 +20,25 @@ defmodule BSClient.Handler do
     {:noreply, server}
   end
 
-  def handle_call({:layout_fleet, receiver_nick, { size, count } }, {from, _}, server) do
-    State.put(:my_fleet, Human.generate_fleet(size, count))
-    {:reply, :ok, server}
+  def handle_cast({ :display_status, nick, status, ship_size }, server) do
+    Engine.display_status(status, :human, ship_size )
+    if status != :game_over do
+      IO.puts "Waiting for opponent to shoot"
+    end
+    {:noreply, server}
   end
 
-  def handle_call({:shoot, receiver_nick, coord }, {from, _}, server) do
-    Engine.play_callback(coord, receiver_nick)
+  def handle_cast({:layout_fleet, receiver_nick, { size, count } }, server) do
+    State.put(:my_fleet, Human.generate_fleet(size, count))
+    {:noreply, server}
+  end
+
+  def handle_cast({:shoot, receiver_nick, coord }, server) do
+    Engine.play(:human, coord, receiver_nick)
+  end
+
+  def handle_call({ :valid_shoot, coord }, {from, _}, server) do
+    {:reply, Engine.valid_shoot?(coord),  server}
   end
 
   def handle_call({ :request_game, nick }, {from, _}, server) do
