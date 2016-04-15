@@ -25,7 +25,7 @@ defmodule BSClient do
 
   defp connect({server, nick}) do
     IO.puts "Connecting to #{server} from #{Node.self} ..."
-    Node.set_cookie(Node.self, :"distributed-battleship")
+    Node.set_cookie(Node.self, :"battleship-in-the-wild")
     case Node.connect(server) do
       true -> :ok
       reason ->
