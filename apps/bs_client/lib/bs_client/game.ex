@@ -13,7 +13,7 @@ defmodule BSClient.Game do
     start
   end
 
-  def handle_command("/help") do
+  defp handle_command("/help") do
     IO.puts """
     Available commands:
       /leave                    # Leave the game world. You can still play with computer
@@ -29,31 +29,31 @@ defmodule BSClient.Game do
     """
   end
 
-  def handle_command("/leave") do
+  defp handle_command("/leave") do
     ServerProcotol.disconnect
     IO.puts "You have exited the game world, you can rejoin with /join or quit with /quit"
   end
 
-  def handle_command("/quit") do
+  defp handle_command("/quit") do
     ServerProcotol.disconnect
     IO.puts "Goodbye!!!!"
     System.halt(0)
   end
 
-  def handle_command("/join") do
+  defp handle_command("/join") do
     ServerProcotol.connect
     IO.puts "Joined the game world"
   end
 
-  def handle_command("/players available") do
+  defp handle_command("/players available") do
     ServerProcotol.list_users
   end
 
-  def handle_command("/players") do
+  defp handle_command("/players") do
     ServerProcotol.list_users
   end
 
-  def handle_command("/play") do
+  defp handle_command("/play") do
     level = Level.setup
     game_mode = Mode.setup
     level ++ game_mode
@@ -63,13 +63,9 @@ defmodule BSClient.Game do
     IO.puts "\n* Type /help for options *"
   end
 
-  def handle_command("/instructions") do
+  defp handle_command("/instructions") do
     Message.instruction
   end
-
-  def handle_command(""), do: :ok
-
-  def handle_command(nil), do: :ok
 
   def handle_command(message) do
     cond do
@@ -84,6 +80,10 @@ defmodule BSClient.Game do
         IO.puts "Command not recognised"
     end
   end
+
+  defp handle_command(""), do: :ok
+
+  defp handle_command(nil), do: :ok
 
   defp parse_private_recipient(message) do
     [to|message] = message

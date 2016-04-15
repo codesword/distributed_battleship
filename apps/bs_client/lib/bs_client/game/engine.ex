@@ -8,8 +8,9 @@ defmodule BSClient.Game.Engine do
 
   def setup([board_size: size, ship_count: count, opponent: :computer]) do
     computer_fleet = Computer.generate_fleet(size, count)
+    State.start_time
     human_fleet = Human.generate_fleet(size, count)
-    { computer_fleet, human_fleet }
+    {computer_fleet, human_fleet}
   end
 
   def setup([board_size: size, ship_count: count, opponent: :human, name: name]) do
@@ -19,43 +20,26 @@ defmodule BSClient.Game.Engine do
     :ok
   end
 
-  def play({ _computer_fleet, _human_fleet }, :computer, :game_over), do: :game_over
-  def play({ _computer_fleet, _human_fleet }, :human, :game_over) do
+  def play({_computer_fleet,_human_fleet}, :computer, :game_over), do: :game_over
+  def play({_computer_fleet, _human_fleet}, :human, :game_over) do
     IO.puts game_over
   end
 
   def play({ computer_fleet, human_fleet }, :human,  _status) do
     IO.puts "Your turn! Here's what you know:"
     Fleet.display(human_fleet)
-    IO.puts "Your turn! Here's my fleet arrangement:"
-    Fleet.display(computer_fleet)
     { status, computer_fleet, ship_size } = shoot(:human, computer_fleet)
     State.inc_shots
     display_status(status, :human, ship_size)
-    play({ computer_fleet, human_fleet }, :computer,  status)
+    play({computer_fleet, human_fleet}, :computer,  status)
   end
 
-  def play({ computer_fleet, human_fleet }, :computer, _status) do
+  def play({computer_fleet, human_fleet}, :computer, _status) do
     IO.puts "My turn! Here's your map:"
     Fleet.display(human_fleet)
     { status, human_fleet, _ship_size } = shoot(:computer, human_fleet)
-    play({ computer_fleet, human_fleet }, :human, status)
+    play({computer_fleet, human_fleet}, :human, status)
   end
-
-  # def play(:human, coord,  opponent_nick) do
-  #   fleet = State.get(:my_fleet)
-  #   IO.puts "Your turn! Here's what you know:"
-  #   Fleet.display(human_fleet)
-  #   { status, human_fleet, ship_size } = shoot(:human, coord, human_fleet)
-  #   State.inc_shots
-  #   display_status(status, :human, ship_size)
-  #   ServerProcotol.shoot(select_coord, opponent_nick)
-  #   if status == :game_over do
-  #     send_message(status, opponent_nick)
-  #   else
-  #     IO.puts "Waiting for opponent to shoot"
-  #   end
-  # end
 
   def play(_, :human, nick) do
     select_coord(nick) |> ServerProcotol.shoot(nick)
